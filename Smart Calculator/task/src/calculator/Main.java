@@ -3,6 +3,28 @@ package calculator;
 import java.util.HashMap;
 import java.util.Scanner;
 
+static class calcState {
+  String activityText;
+  String errorText;
+  String line;
+  int result;
+  HashMap<String, Integer> vars;
+
+  calcState() {
+    activityText = "";
+    errorText = "";
+    line = "";
+    result = 0;
+    vars = new HashMap<>();
+  }
+
+  void reset() {
+    activityText = "";
+    errorText = "";
+    result = 0;
+  }
+}
+
 public class Main {
   public static void main(String[] args) {
     Scanner scanner = new Scanner(System.in);
@@ -27,11 +49,19 @@ public class Main {
       if (state.errorText.equals("")) {
         if (state.activityText.equals("Operation"))
           System.out.println(state.result);
+        if (state.activityText.equals("Help command"))
+          helpDisplay();
       } else {
         System.out.println(state.errorText);
       }
     }
     System.out.println("Bye!");
+  }
+
+  private static void helpDisplay() {
+    System.out.println("/exit to exit");
+    System.out.println("+...+ = +");
+    System.out.println("-- = +");
   }
 
   private static void assignment(calcState state) {
@@ -62,6 +92,8 @@ public class Main {
   private static void command(calcState state) {
     if (state.line.equals("/exit")) {
       state.activityText = "Exit command";
+    } else if (state.line.equals("/help")) {
+      state.activityText = "Help command";
     } else {
       state.errorText = "Unknown command";
     }
@@ -123,27 +155,5 @@ public class Main {
 
   static void emptyLine(calcState state) {
     state.activityText = "Empty Line";
-  }
-
-  static class calcState {
-    String activityText;
-    String errorText;
-    String line;
-    int result;
-    HashMap<String, Integer> vars;
-
-    calcState() {
-      activityText = "";
-      errorText = "";
-      line = "";
-      result = 0;
-      vars = new HashMap<>();
-    }
-
-    void reset() {
-      activityText = "";
-      errorText = "";
-      result = 0;
-    }
   }
 }
