@@ -105,13 +105,14 @@ public class Main {
     String[] assignment = state.getLine().split("=");
 
     if (assignment.length == 2) {
-      if (assignment[0].matches("^[a-zA-Z]+$")) {
-
-        if (assignment[1].matches("^-?\\d+$")) {
+      if (isIdentifier(assignment[0])) {
+        if (isNumber(assignment[1])) {
           state.vars.put(assignment[0], Integer.parseInt(assignment[1]));
-        } else if (assignment[1].matches("^[a-zA-Z]+$")) {
+        } else if (isIdentifier(assignment[1])) {
           if (state.vars.containsKey(assignment[1])) {
             state.vars.put(assignment[0], state.vars.get(assignment[1]));
+          } else {
+            state.setErrorText("Invalid assignment");
           }
         } else {
           state.setErrorText("Invalid assignment");
@@ -141,24 +142,41 @@ public class Main {
     calculateResult(state, list);
   }
 
-  private static void calculateResult(calcState state, ArrayList<String> list) {
-    Stack<String> rpn = new Stack<>();
-
-  }
-
   private static void makePostfix(calcState state, ArrayList<String> list) {
     Stack<String> rpn = new Stack<>();
     while (state.getLine().length() > 0) {
-      if (state.getLine().equals("(")) {
+      if (state.getLine().charAt(0) == ('(')) {
         rpn.push("(");
         state.cutFirstChar();
-      } else if (state.getLine().equals(")")) {
-        while (!")".equals(rpn.peek())) {
+      } else if (state.getLine().charAt(0) == (')')) {
+        while (!"(".equals(rpn.peek())) {
           list.add(rpn.pop());
         }
       } else {
-        String[] strArr = state.getLine().split("(?=-) | (?=/+) |" +
+        String[] strArray = state.getLine().split("(?=-) | (?=/+) |" +
           " (?='/(') | (?='/)') | (?=/*) | (?='//') | (?=^)", 2);
+        if (isNumber(strArray[0]) || isIdentifier(strArray[0])) {
+          list.add(strArray[0]);
+          int opLength = longOperator(strArray[1]);
+          if (opLength > 1) {
+            if (strArray[1].equals("+")) {
+              pushOperator(list, rpn, "+");
+            } else if (strArray[1].equals("-")) {
+              if (opLength % 2 == 0) {
+                pushOperator(list, rpn, "+");
+              } else {
+                pushOperator(list, rpn, "-");
+              }
+            } else {
+              state.setErrorText("Invalid expression");
+            }
+          } else {
+            pushOperator(list, rpn, Character.toString(strArray[1].charAt(0)));
+          }
+          state.setLine(state.getLine().substring(opLength));
+        } else {
+          state.setErrorText("Invalid expression");
+        }
       }
     }
     while (rpn.size() > 0) {
@@ -166,17 +184,55 @@ public class Main {
         list.add(rpn.pop());
       }
       if (isParenthesis(rpn.peek())) {
-
+        if (rpn.peek().equals(")")) {
+          state.setErrorText("Invalid expression");
+        } else {
+          rpn.pop();
+        }
       }
     }
   }
 
-  private static boolean isParenthesis(String peek) {
-    return "(".equals(peek) || ")".equals(peek);
+  private static void calculateResult(calcState state, ArrayList<String> list) {
+    Stack<String> rpn = new Stack<>();
+//...
   }
 
-  private static boolean isOperator(String peek) {
-    return ("+".equals(peek)) || ("-".equals(peek)) || ("*".equals(peek)) || ("^".equals(peek)) || ("/".equals(peek));
+  private static int longOperator(String str) {
+    int i = 1;
+    while (str.charAt(0) == str.charAt(i)) {
+      i++;
+    }
+    return i;
+  }
+
+  private static void pushOperator(ArrayList<String> list, Stack<String> rpn, String op) {
+    if (rpn.isEmpty() || rpn.peek().equals("(")) {
+      rpn.push(op);
+    } else if (precedence(rpn.peek()) < precedence(op)) {
+      rpn.push(op);
+    } else {
+      while (precedence(rpn.peek()) >= precedence(op)) {
+        list.add(rpn.pop());
+      }
+      rpn.push(op);
+    }
+  }
+
+  private static boolean isParenthesis(String str) {
+    return "(".equals(str) || ")".equals(str);
+  }
+
+  private static boolean isOperator(String str) {
+    return ("+".equals(str)) || ("-".equals(str)) || ("*".equals(str)) || ("^".equals(str)) || ("/".equals(str));
+  }
+
+  private static boolean isIdentifier(String str) {
+    return str.matches("^[a-zA-Z]+$");
+  }
+
+  private static boolean isNumber(String str) {
+    return str.matches("^-?\\d+$");
   }
 
   static void emptyLine(calcState state) {
