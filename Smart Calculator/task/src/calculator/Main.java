@@ -6,8 +6,8 @@ import java.util.Scanner;
 import java.util.Stack;
 
 class calcState {
-  int result;
   HashMap<String, Integer> vars;
+  private int result;
   private String errorText;
   private String line;
   private String activityText;
@@ -18,6 +18,14 @@ class calcState {
     line = "";
     result = 0;
     vars = new HashMap<>();
+  }
+
+  public int getResult() {
+    return result;
+  }
+
+  public void setResult(int result) {
+    this.result = result;
   }
 
   String getActivityText() {
@@ -84,7 +92,7 @@ public class Main {
       }
       if (state.getErrorText().equals("")) {
         if (state.getActivityText().equals("Operation"))
-          System.out.println(state.result);
+          System.out.println(state.getResult());
         if (state.getActivityText().equals("Help command"))
           helpDisplay();
       } else {
@@ -138,13 +146,14 @@ public class Main {
   private static void operation(calcState state) {
     state.setActivityText("Operation");
     ArrayList<String> list = new ArrayList<>();
-    makePostfix(state, list);
-    calculateResult(state, list);
+    makeRPN(state, list);
+    calculateRPN(state, list);
   }
 
-  private static void makePostfix(calcState state, ArrayList<String> list) {
+  private static void makeRPN(calcState state, ArrayList<String> list) {
     Stack<String> rpn = new Stack<>();
     while (state.getLine().length() > 0) {
+//      System.out.println(state.getLine());
       if (state.getLine().charAt(0) == ('(')) {
         rpn.push("(");
         state.cutFirstChar();
@@ -152,9 +161,11 @@ public class Main {
         while (!"(".equals(rpn.peek())) {
           list.add(rpn.pop());
         }
+        state.cutFirstChar();
       } else {
-        String[] strArray = state.getLine().split("(?=-) | (?=/+) |" +
-          " (?='/(') | (?='/)') | (?=/*) | (?='//') | (?=^)", 2);
+        String[] strArray = state.getLine().split(
+          "(?=-) | (?=\\+) | (?=\\() | (?=\\)) | (?=\\*) | (?=/) | (?=\\^)", 2);
+        System.out.println(strArray[0]);
         if (isNumber(strArray[0]) || isIdentifier(strArray[0])) {
           list.add(strArray[0]);
           int opLength = longOperator(strArray[1]);
@@ -193,9 +204,41 @@ public class Main {
     }
   }
 
-  private static void calculateResult(calcState state, ArrayList<String> list) {
-    Stack<String> rpn = new Stack<>();
-//...
+  private static void calculateRPN(calcState state, ArrayList<String> list) {
+    Stack<Integer> rpn = new Stack<>();
+    for (String str : list) {
+      if (isNumber(str)) {
+        rpn.push(Integer.parseInt(str));
+      } else if (isIdentifier(str)) {
+        rpn.push(state.vars.get(str));
+      } else if (isOperator(str)) {
+        rpn.push(calc(str, rpn.pop(), rpn.pop()));
+      }
+    }
+    state.setResult(rpn.peek());
+  }
+
+  private static int calc(String op, int arg2, int arg1) {
+    if ("+".equals(op)) {
+      return arg1 + arg2;
+    }
+    if ("-".equals(op)) {
+      return arg1 - arg2;
+    }
+    if ("*".equals(op)) {
+      return arg1 * arg2;
+    }
+    if ("/".equals(op)) {
+      return arg1 / arg2;
+    }
+    if ("^".equals(op)) {
+      int i = 1;
+      for (int j = 0; j < arg2; j++) {
+        i *= arg1;
+      }
+      return i;
+    }
+    return 0;
   }
 
   private static int longOperator(String str) {
