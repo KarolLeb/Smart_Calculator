@@ -145,27 +145,33 @@ public class Main {
 
   private static void operation(calcState state) {
     state.setActivityText("Operation");
-    ArrayList<String> list = new ArrayList<>();
-    Stack<String> rpn = new Stack<>();
-    makeRPN(state, list, rpn);
-    while (!rpn.isEmpty()) {
-      if (isOperator(rpn.peek())) {
-        list.add(rpn.pop());
-      } else if (isParenthesis(rpn.peek())) {
-        if (rpn.peek().equals(")")) {
-          state.setErrorText("Invalid expression");
-        } else {
-          rpn.pop();
+
+    long countLeft = state.getLine().chars().filter(ch -> ch == '(').count();
+    long countRight = state.getLine().chars().filter(ch -> ch == ')').count();
+    if (countLeft != countRight) {
+      state.setErrorText("Invalid expression");
+    } else {
+      ArrayList<String> list = new ArrayList<>();
+      Stack<String> rpn = new Stack<>();
+      makeRPN(state, list, rpn);
+      while (!rpn.isEmpty()) {
+        if (isOperator(rpn.peek())) {
+          list.add(rpn.pop());
+        } else if (isParenthesis(rpn.peek())) {
+          if (rpn.peek().equals(")")) {
+            state.setErrorText("Invalid expression");
+          } else {
+            rpn.pop();
+          }
         }
       }
-    }
-    if (state.getErrorText().isEmpty()) {
-      calculateRPN(state, list);
+      if (state.getErrorText().isEmpty()) {
+        calculateRPN(state, list);
+      }
     }
   }
 
   private static void makeRPN(calcState state, ArrayList<String> list, Stack<String> rpn) {
-//debug
 //    System.out.println(state.getLine());
 //    System.out.println("List: " + list);
 //    System.out.println("Stack: " + rpn);
@@ -205,7 +211,6 @@ public class Main {
         list.add(state.getLine());
         state.setLine("");
       } else {
-//        todo:make split great again
         if (isNumber(strArray[0]) || isIdentifier(strArray[0])) {
           list.add(strArray[0]);
           state.setLine(strArray[1]);
