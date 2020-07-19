@@ -90,7 +90,7 @@ public class Main {
       } else {
         emptyLine(state);
       }
-      if (state.getErrorText().equals("")) {
+      if (state.getErrorText().isEmpty()) {
         if (state.getActivityText().equals("Operation"))
           System.out.println(state.getResult());
         if (state.getActivityText().equals("Help command"))
@@ -146,55 +146,12 @@ public class Main {
   private static void operation(calcState state) {
     state.setActivityText("Operation");
     ArrayList<String> list = new ArrayList<>();
-    makeRPN(state, list);
-    calculateRPN(state, list);
-  }
-
-  private static void makeRPN(calcState state, ArrayList<String> list) {
     Stack<String> rpn = new Stack<>();
-    while (state.getLine().length() > 0) {
-//      System.out.println(state.getLine());
-      if (state.getLine().charAt(0) == ('(')) {
-        rpn.push("(");
-        state.cutFirstChar();
-      } else if (state.getLine().charAt(0) == (')')) {
-        while (!"(".equals(rpn.peek())) {
-          list.add(rpn.pop());
-        }
-        state.cutFirstChar();
-      } else {
-        String[] strArray = state.getLine().split(
-          "(?=-) | (?=\\+) | (?=\\() | (?=\\)) | (?=\\*) | (?=/) | (?=\\^)", 2);
-        System.out.println(strArray[0]);
-        if (isNumber(strArray[0]) || isIdentifier(strArray[0])) {
-          list.add(strArray[0]);
-          int opLength = longOperator(strArray[1]);
-          if (opLength > 1) {
-            if (strArray[1].equals("+")) {
-              pushOperator(list, rpn, "+");
-            } else if (strArray[1].equals("-")) {
-              if (opLength % 2 == 0) {
-                pushOperator(list, rpn, "+");
-              } else {
-                pushOperator(list, rpn, "-");
-              }
-            } else {
-              state.setErrorText("Invalid expression");
-            }
-          } else {
-            pushOperator(list, rpn, Character.toString(strArray[1].charAt(0)));
-          }
-          state.setLine(state.getLine().substring(opLength));
-        } else {
-          state.setErrorText("Invalid expression");
-        }
-      }
-    }
-    while (rpn.size() > 0) {
+    makeRPN(state, list, rpn);
+    while (!rpn.isEmpty()) {
       if (isOperator(rpn.peek())) {
         list.add(rpn.pop());
-      }
-      if (isParenthesis(rpn.peek())) {
+      } else if (isParenthesis(rpn.peek())) {
         if (rpn.peek().equals(")")) {
           state.setErrorText("Invalid expression");
         } else {
@@ -202,20 +159,86 @@ public class Main {
         }
       }
     }
+    if (state.getErrorText().isEmpty()) {
+      calculateRPN(state, list);
+    }
+  }
+
+  private static void makeRPN(calcState state, ArrayList<String> list, Stack<String> rpn) {
+//debug
+//    System.out.println(state.getLine());
+//    System.out.println("List: " + list);
+//    System.out.println("Stack: " + rpn);
+
+    if (isParenthesis(state.getLine().substring(0, 1))) {
+      if (state.getLine().charAt(0) == ('(')) {
+        rpn.push("(");
+        state.cutFirstChar();
+      } else if (state.getLine().charAt(0) == (')')) {
+        while (!"(".equals(rpn.peek())) {
+          list.add(rpn.pop());
+        }
+        rpn.pop();
+        state.cutFirstChar();
+      }
+    } else if (isOperator(state.getLine().substring(0, 1))) {
+      int opLength = longOperator(state.getLine());
+      if (opLength > 1) {
+        if (state.getLine().startsWith("+")) {
+          pushOperator(list, rpn, "+");
+        } else if (state.getLine().startsWith("-")) {
+          if (opLength % 2 == 0) {
+            pushOperator(list, rpn, "+");
+          } else {
+            pushOperator(list, rpn, "-");
+          }
+        } else {
+          state.setErrorText("Invalid expression");
+        }
+      } else {
+        pushOperator(list, rpn, state.getLine().substring(0, 1));
+      }
+      state.setLine(state.getLine().substring(opLength));
+    } else {
+      String[] strArray = state.getLine().split("(?=\\W)", 2);
+      if (strArray.length < 2) {
+        list.add(state.getLine());
+        state.setLine("");
+      } else {
+//        todo:make split great again
+        if (isNumber(strArray[0]) || isIdentifier(strArray[0])) {
+          list.add(strArray[0]);
+          state.setLine(strArray[1]);
+        } else {
+          state.setErrorText("Invalid expression");
+        }
+      }
+    }
+    if (state.getLine().length() > 0) {
+      makeRPN(state, list, rpn);
+    }
   }
 
   private static void calculateRPN(calcState state, ArrayList<String> list) {
     Stack<Integer> rpn = new Stack<>();
     for (String str : list) {
+//      System.out.println("List: " + list);
+//      System.out.println("Stack: " + rpn);
       if (isNumber(str)) {
         rpn.push(Integer.parseInt(str));
       } else if (isIdentifier(str)) {
-        rpn.push(state.vars.get(str));
+        if (state.vars.containsKey(str)) {
+          rpn.push(state.vars.get(str));
+        } else {
+          state.setErrorText("Unknown variable");
+        }
       } else if (isOperator(str)) {
         rpn.push(calc(str, rpn.pop(), rpn.pop()));
       }
     }
-    state.setResult(rpn.peek());
+    if (state.getErrorText().isEmpty()) {
+      state.setResult(rpn.peek());
+    }
   }
 
   private static int calc(String op, int arg2, int arg1) {
@@ -255,10 +278,9 @@ public class Main {
     } else if (precedence(rpn.peek()) < precedence(op)) {
       rpn.push(op);
     } else {
-      while (precedence(rpn.peek()) >= precedence(op)) {
-        list.add(rpn.pop());
-      }
-      rpn.push(op);
+      // if (precedence(rpn.peek()) >= precedence(op))
+      list.add(rpn.pop());
+      pushOperator(list, rpn, op);
     }
   }
 
