@@ -1,0 +1,20 @@
+.gradle/
+.idea/
+/Smart Calculator/2+2
+/Smart Calculator/2+2+
+/Smart Calculator/Add subtractions
+/Smart Calculator/Count them all
+/Smart Calculator/Error!
+/Smart Calculator/I’ve got the power
+/Smart Calculator/lesson-info.yaml
+/Smart Calculator/task/build
+/Smart Calculator/task/out
+/Smart Calculator/Variables
+/Smart Calculator/Very big
+build.gradle
+course-info.yaml
+course-remote-info.yaml
+gradle/
+gradlew
+gradlew.bat
+settings.gradle
